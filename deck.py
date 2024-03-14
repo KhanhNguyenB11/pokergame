@@ -18,7 +18,7 @@ class Deck:
                 else:
                     value = 14  # Ace
                 name = f"{rank} of {suit}"
-                card = Card(name, value)
+                card = Card(name, value, suit)
                 self.cards.append(card)
 
     def shuffle(self):

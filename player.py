@@ -1,8 +1,8 @@
 class player:
-    def __init__(self,name,money = 5000,hand = [],highest = [0,0]):
+    def __init__(self,name,money = 5000,highest = [0,0]):
         self.name = name
         self.highest = highest
-        self.hand = hand
+        self.hand = []
         self.money = money
 
     def sort_hand_by_value(self):
