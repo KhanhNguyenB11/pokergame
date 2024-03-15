@@ -6,32 +6,69 @@ deck.shuffle()
 
 player1 = player("p1")
 player2 = player("p2")
+player_list = [player1,player2]
 flop = []
+pot = 0
+current_bet = 0
 
-for _ in range(2):  # Drawing 2 cards
-    player1.hand.append(deck.draw_card())
-    print(f"{player1.name} Card: {player1.hand[-1].name}, Value: {player1.hand[-1].value}")
-    player2.hand.append(deck.draw_card())
-    print(f"{player2.name} Card: {player2.hand[-1].name}, Value: {player2.hand[-1].value}")
+poker_ranks = {
+    "High Card": 1,
+    "One Pair": 2,
+    "Two Pair": 3,
+    "Three of a Kind": 4,
+    "Straight": 5,
+    "Flush": 6,
+    "Full House": 7,
+    "Four of a Kind": 8,
+    "Straight Flush": 9,
+    "Royal Flush": 10
+}
+def print_name_of_flop(flop):
+    print(f"Flop: {[card.name for card in flop]}")
 
-for _ in range(5):
-    flop.append(deck.draw_card())
-    print(f"Flop: {flop[-1].name}, Value: {flop[-1].value}")
-full_house_cards_2 = [
-    Card("Ace", 14, "Hearts"),
-    Card("Ace", 14, "Clubs")
-]
+def check_winner():
+        if len(player_list) == 1:
+            print(f"{player_list[0].name} wins!!!\n +{current_bet}$")
+            player_list[0].money += pot
+def game():
+    dealCards(player_list)
+    flopdeal(flop)
+    while len(player_list) > 1:
+        print_name_of_flop(flop)
+        for player in player_list:
+            player.print_name_of_hand()
+            print(f"\n{player.name}, select choice:")
+            print("1.Fold")
+            print("2.Bet")
+            print("3.Call")
+            print("4.Check")
+            choice = input("Enter your choice: ")
+            if choice == "1":
+                player.fold(current_bet)
+                player_list.remove(player)
+            elif choice == "2":
+                bet_amount = int(input("Enter the bet amount: "))
+                player.bet(current_bet)
+            elif choice == "3":
+                player.call(current_bet)
+            elif choice == "4":
+                pass
+            else:
+                print("Invalid choice. Please select again.")
 
-full_house_cards_5 = [
-    Card("King", 13, "Hearts"),
-    Card("King", 13, "Clubs"),
-    Card("King", 13, "Diamonds"),
-    Card("Ace", 13, "Spades"),
-    Card("Ace", 10, "Diamonds")
-]
-player2.hand = full_house_cards_2
-flop = full_house_cards_5
-print(player2.hasSquad(player2.hand,flop))
+
+def reset_game():
+    flop = []
+    current_bet = 0
+    pot = 0
+def dealCards(p_list):
+    for player in p_list:
+        for _ in range(2):
+            player.hand.append(deck.draw_card())
+def flopdeal(flop):
+    for _ in range(3):
+        flop.append(deck.draw_card())
 
 
+game()
 

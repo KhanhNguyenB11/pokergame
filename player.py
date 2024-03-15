@@ -1,11 +1,17 @@
 from collections import Counter
 class player:
-    def __init__(self,name,money = 5000,highest = [0,0]):
+    def __init__(self,name,money = 5000):
         self.name = name
-        self.highest = highest
+        self.highest = []
         self.hand = []
         self.money = money
 
+    def print_value_of_hand(self,cards):
+        values = [card.value for card in self.hand]
+        print(values)
+
+    def print_name_of_hand(self):
+        print(f"Your hand: {[card.name for card in self.hand]}")
     def sort_hand_by_value(self,cards):
         return sorted(cards,key=lambda card: card.value)
 
@@ -91,6 +97,30 @@ class player:
                     return flush_cards[-nmax].value
         return None
 
+    def fold(self,current_bet):
+        self.money -= current_bet
+
+    def call(self, current_bet):
+        if self.money >= current_bet:
+            print(f"{self.name} calls the bet of {current_bet}.")
+            self.money -= current_bet
+            return True
+        else:
+            print(f"{self.name} doesn't have enough chips to call. They go all-in with {self.money} chips.")
+            self.money = 0
+            return False
+
+    def bet(self, amount):
+        if self.money >= amount:
+            print(f"{self.name} bets {amount} money.")
+            self.money -= amount
+            return amount
+        else:
+            print(f"{self.name} doesn't have enough money to bet. They go all-in with {self.money} chips.")
+            bet_all_in = self.money
+            self.money = 0
+            return bet_all_in
 
     def filter_by_suit(self,cards, target_suit):
         return [card for card in cards if card.suit == target_suit]
+
