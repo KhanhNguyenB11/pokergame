@@ -18,6 +18,18 @@ class player:
     def highcard(self,cards):
         return sum(card.value for card in cards[:])
 
+    def hasStraightFlush(self, hand, flop):
+        # Check if the player has a flush
+        flush_value = self.hasFlush(hand, flop)
+        if flush_value:
+            # Check if the player has a straight within the flush cards
+            flush_cards = self.filter_by_suit(hand + flop, flush_value.suit)
+            straight_value = self.hasStraight(flush_cards, [])
+            if straight_value:
+                return straight_value  # Return the value of the highest card in the straight flush
+        return None
+
+
     def hasPair(self,hand, flop):
         # Create a copy of the hand to avoid modifying the original list
         hand_copy = hand[:]
@@ -30,6 +42,23 @@ class player:
             return max(pairs)
         else:
             return None
+
+    def has2pairs(self, hand, flop):
+        # Create a copy of the hand to avoid modifying the original list
+        hand_copy = hand[:]
+        # Extend the copy with the flop cards
+        hand_copy.extend(flop)
+
+        values = [card.value for card in hand_copy]
+        value_counts = Counter(values)
+
+        pairs = [value for value, count in value_counts.items() if count >= 2]
+
+        if len(pairs) >= 2:
+            return sorted(pairs, reverse=True)[:2]  # Return the two highest pairs
+        else:
+            return None
+
 
     def hasThree(self,hand, flop):
         # Create a copy of the hand to avoid modifying the original list
@@ -90,8 +119,8 @@ class player:
         for suit, count in suit_counts.items():
             if count >= 5:
                 flush_cards = self.filter_by_suit(hand_copy, suit)
-                if(nmax == 0):
-                    return max(flush_cards, key=lambda x: x.value).value
+                if nmax == 0:
+                    return max(flush_cards, key=lambda x: x.value)
                 else:
                     flush_cards = self.sort_hand_by_value(flush_cards)
                     return flush_cards[-nmax].value
@@ -122,5 +151,56 @@ class player:
             return bet_all_in
 
     def filter_by_suit(self,cards, target_suit):
-        return [card for card in cards if card.suit == target_suit]
+            return [card for card in cards if card.suit == target_suit]
+
+    def determine_highest(self, flop):
+        hand = self.hand
+        # Check for various hand combinations starting from the strongest
+        straight_flush = self.hasStraightFlush(hand,flop)
+        if straight_flush:
+            if straight_flush == 14:
+                self.highest = ("Royal Flush", straight_flush)
+            else:
+                self.highest = ("Straight Flush", straight_flush)
+            return
+
+        squad = self.hasSquad(hand, flop)
+        if squad:
+            self.highest = ("Squad", squad)
+            return
+
+        full_house = self.hasFullHouse(hand, flop)
+        if full_house:
+            self.highest = ("Full House", full_house)
+            return
+
+        flush = self.hasFlush(hand, flop)
+        if flush:
+            self.highest = ("Flush", flush.value)
+            return
+
+        straight = self.hasStraight(hand, flop)
+        if straight:
+            self.highest = ("Straight", straight)
+            return
+
+        three_of_a_kind = self.hasThree(hand, flop)
+        if three_of_a_kind:
+            self.highest = ("Three of a Kind", three_of_a_kind)
+            return
+
+        two_pairs = self.has2pairs(hand,flop)
+        if two_pairs:
+            self.highest = ["Two Pairs",two_pairs]
+            return
+
+        pair = self.hasPair(hand, flop)
+        if pair:
+            self.highest = ("Pair", pair)
+            return
+
+        # If no strong hand is found, determine high card
+        high_card = self.highcard(hand)
+        self.highest = ("High Card", high_card)
+
 
