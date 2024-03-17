@@ -2,7 +2,7 @@ from collections import Counter
 class player:
     def __init__(self,name,money = 5000):
         self.name = name
-        self.highest = []
+        self.highest = ()
         self.hand = []
         self.money = money
 
@@ -16,7 +16,8 @@ class player:
         return sorted(cards,key=lambda card: card.value)
 
     def highcard(self,cards):
-        return sum(card.value for card in cards[:])
+        cards = self.sort_hand_by_value(cards)
+        return cards[0]
 
     def hasStraightFlush(self, hand, flop):
         # Check if the player has a flush
@@ -39,7 +40,7 @@ class player:
         value_counts = Counter(values)
         pairs = [value for value, count in value_counts.items() if count >= 2]
         if pairs:
-            return max(pairs)
+            return pairs
         else:
             return None
 
@@ -55,7 +56,7 @@ class player:
         pairs = [value for value, count in value_counts.items() if count >= 2]
 
         if len(pairs) >= 2:
-            return sorted(pairs, reverse=True)[:2]  # Return the two highest pairs
+            return sorted(pairs, reverse=True) # Return the two pairs
         else:
             return None
 
@@ -69,7 +70,7 @@ class player:
         value_counts = Counter(values)
         three_of_a_kind = [value for value, count in value_counts.items() if count >= 3]
         if three_of_a_kind:
-            return max(three_of_a_kind)
+            return three_of_a_kind
         else:
             return None
 
@@ -82,7 +83,7 @@ class player:
         value_counts = Counter(values)
         squad = [value for value, count in value_counts.items() if count >= 4]
         if squad:
-            return max(squad)
+            return squad
         else:
             return None
     def hasFullHouse(self,hand,flop):
@@ -102,7 +103,7 @@ class player:
         # Check for consecutive values
         for i in range(len(values) - 4):
             if values[i] + 4 == values[i + 4]:
-                return values[i + 4]  # Return the highest value of the straight
+                return values[i:4]  # Return the straight
         return None
 
     def hasFlush(self,hand, flop,nmax = 0):
@@ -120,7 +121,7 @@ class player:
             if count >= 5:
                 flush_cards = self.filter_by_suit(hand_copy, suit)
                 if nmax == 0:
-                    return max(flush_cards, key=lambda x: x.value)
+                    return  self.sort_hand_by_value(flush_cards)
                 else:
                     flush_cards = self.sort_hand_by_value(flush_cards)
                     return flush_cards[-nmax].value
@@ -159,48 +160,48 @@ class player:
         straight_flush = self.hasStraightFlush(hand,flop)
         if straight_flush:
             if straight_flush == 14:
-                self.highest = ("Royal Flush", straight_flush)
+                self.highest = (10, straight_flush)
             else:
-                self.highest = ("Straight Flush", straight_flush)
+                self.highest = (9, straight_flush)
             return
 
         squad = self.hasSquad(hand, flop)
         if squad:
-            self.highest = ("Squad", squad)
+            self.highest = (8, squad)
             return
 
         full_house = self.hasFullHouse(hand, flop)
         if full_house:
-            self.highest = ("Full House", full_house)
+            self.highest = (7, full_house)
             return
 
         flush = self.hasFlush(hand, flop)
         if flush:
-            self.highest = ("Flush", flush.value)
+            self.highest = (6, flush.value)
             return
 
         straight = self.hasStraight(hand, flop)
         if straight:
-            self.highest = ("Straight", straight)
+            self.highest = (5, straight)
             return
 
         three_of_a_kind = self.hasThree(hand, flop)
         if three_of_a_kind:
-            self.highest = ("Three of a Kind", three_of_a_kind)
+            self.highest = (4, three_of_a_kind)
             return
 
         two_pairs = self.has2pairs(hand,flop)
         if two_pairs:
-            self.highest = ["Two Pairs",two_pairs]
+            self.highest = [3,two_pairs]
             return
 
         pair = self.hasPair(hand, flop)
         if pair:
-            self.highest = ("Pair", pair)
+            self.highest = (2, pair)
             return
 
         # If no strong hand is found, determine high card
         high_card = self.highcard(hand)
-        self.highest = ("High Card", high_card)
+        self.highest = (1, high_card)
 
 

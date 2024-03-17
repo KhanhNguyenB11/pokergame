@@ -6,7 +6,7 @@ from card import Card
 player1 = player("p1")
 player2 = player("p2")
 player_list = [player1,player2]
-flop = []
+
 poker_ranks = {
     "High Card": 1,
     "One Pair": 2,
@@ -15,7 +15,7 @@ poker_ranks = {
     "Straight": 5,
     "Flush": 6,
     "Full House": 7,
-    "Four of a Kind": 8,
+    "Squad": 8,
     "Straight Flush": 9,
     "Royal Flush": 10
 }
@@ -34,7 +34,7 @@ def print_action(player):
     player.print_name_of_hand()
     print(f"Your Money: {player.money}")
 def game():
-
+    flop = []
     pot = 0
     # ante amount
     current_bet = 0
@@ -46,6 +46,9 @@ def game():
     for i in range(5):
         if i == 1:
             flopdeal(flop, deck)
+        if i == 4:
+            showdown(player_list, flop)
+            break
         elif i > 1:
             flop.append(deck.draw_card())
         for player in player_list:
@@ -77,10 +80,29 @@ def make_pot(player_list,small_blind,pot):
     big.money -= small_blind * 2
     pot += small_blind*3
 
-def reset_game():
-    flop = []
-    current_bet = 0
-    pot = 0
+
+def showdown(players,flop):
+    for player in players:
+        player.determine_highest(flop)
+    # Sort players by the rank of their highest hands
+    players.sort(key=lambda x: (x.highest[0], x.highest[1].value), reverse=True)
+    highest_hand = players[0].highest[0]
+    # Check if there's a single winner
+    highest_players = filter_by_highest_hand(players, highest_hand)
+    if len(highest_players) == 1:
+        return highest_players[0]
+    # more than 2 players have the same rank
+    else:
+        #pair
+        pass
+
+
+
+
+
+def filter_by_value(players,value):
+    return [player for player in players if player.highest[1] == value]
+
 def dealCards(p_list,deck):
     for player in p_list:
         for _ in range(2):
@@ -88,6 +110,9 @@ def dealCards(p_list,deck):
 def flopdeal(flop,deck):
     for _ in range(3):
         flop.append(deck.draw_card())
+
+def filter_by_highest_hand(players, target):
+    return [player for player in players if player.highest[0] == target]
 
 
 game()
