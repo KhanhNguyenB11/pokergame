@@ -5,6 +5,7 @@ class player:
         self.highest = ()
         self.hand = []
         self.money = money
+        self.initial_bet = 0
 
     def print_value_of_hand(self,cards):
         values = [card.value for card in self.hand]
@@ -12,19 +13,26 @@ class player:
 
     def print_name_of_hand(self):
         print(f"Your hand: {[card.name for card in self.hand]}")
-    def sort_hand_by_value(self,cards):
-        return sorted(cards,key=lambda card: card.value)
 
-    def highcard(self,cards):
-        cards = self.sort_hand_by_value(cards)
-        return cards[0]
+    def sort_hand_by_value(self,cards):
+        return sorted(cards, key=lambda card: card.value,reverse=True)
+
+    def highcard(self, highest, flop,ncard = None):
+        all_cards = self.hand + flop
+        high_cards =  [card for card in all_cards if card not in highest]
+        high = self.sort_hand_by_value(high_cards)
+        if ncard is not None:
+            return high[:ncard+1]
+        else:
+            return high
+
 
     def hasStraightFlush(self, hand, flop):
         # Check if the player has a flush
         flush_value = self.hasFlush(hand, flop)
         if flush_value:
             # Check if the player has a straight within the flush cards
-            flush_cards = self.filter_by_suit(hand + flop, flush_value.suit)
+            flush_cards = self.filter_by_suit(hand + flop, flush_value[0].suit)
             straight_value = self.hasStraight(flush_cards, [])
             if straight_value:
                 return straight_value  # Return the value of the highest card in the straight flush
@@ -56,7 +64,7 @@ class player:
         pairs = [value for value, count in value_counts.items() if count >= 2]
 
         if len(pairs) >= 2:
-            return sorted(pairs, reverse=True) # Return the two pairs
+            return sorted(pairs, reverse=True)[:2] # Return the two pairs
         else:
             return None
 
@@ -86,11 +94,28 @@ class player:
             return squad
         else:
             return None
-    def hasFullHouse(self,hand,flop):
-        three = self.hasThree(hand,flop)
-        pair = self.hasPair(hand,flop)
-        if three is not None and pair is not None:
-            return [three,pair]
+
+    def hasFullHouse(self, hand, flop):
+        # Create a copy of the hand to avoid modifying the original list
+        hand_copy = hand[:]
+        # Extend the copy with the flop cards
+        hand_copy.extend(flop)
+        # Count occurrences of each card value
+        value_counts = Counter(card.value for card in hand_copy)
+        # Check if there are exactly two distinct values: one with count 3 and another with count 2
+        if {3, 2}.issubset(set(value_counts.values())):
+            # Extract the values of three of a kind and pair
+            three_of_a_kind = None
+            pair = None
+            for value, count in value_counts.items():
+                if count == 3:
+                    three_of_a_kind = value
+                elif count == 2:
+                    pair = value
+            return [three_of_a_kind, pair]
+        else:
+            return None
+
     def hasStraight(self,hand, flop):
         # Create a copy of the hand to avoid modifying the original list
         hand_copy = hand[:]
@@ -98,14 +123,25 @@ class player:
         hand_copy.extend(flop)
 
         # Extract values of the cards and sort them
-        values = sorted([card.value for card in hand_copy])
+        hand_copy = self.sort_hand_by_value(hand_copy)
+        straight_list = []
+        for i in range(len(hand_copy) - 1):
+            current_value = hand_copy[i].value
+            next_value = hand_copy[i + 1].value
 
-        # Check for consecutive values
-        for i in range(len(values) - 4):
-            if values[i] + 4 == values[i + 4]:
-                return values[i:4]  # Return the straight
-        return None
+            if next_value == current_value - 1:  # Cards are consecutive
+                if hand_copy[i] not in straight_list and hand_copy[i+1] not in straight_list:
+                    straight_list.append(hand_copy[i])
+                    straight_list.append(hand_copy[i+1])
+            elif next_value == current_value:  # Allow duplicates within a straight
+                continue
 
+            else:  # Cards are not consecutive, reset straight tracking
+                straight_list = []
+
+            if len(straight_list) >= 5:
+                return straight_list[:5]
+        return None  # No straight found
     def hasFlush(self,hand, flop,nmax = 0):
         # Create a copy of the hand to avoid modifying the original list
         hand_copy = hand[:]
@@ -127,13 +163,14 @@ class player:
                     return flush_cards[-nmax].value
         return None
 
-    def fold(self,current_bet):
-        self.money -= current_bet
+    def fold(self):
+        self.money -= self.initial_bet
 
     def call(self, current_bet):
-        if self.money >= current_bet:
+        if self.money >= current_bet - self.initial_bet:
             print(f"{self.name} calls the bet of {current_bet}.")
-            self.money -= current_bet
+            print("-"*20)
+            self.money -= current_bet - self.initial_bet
             return True
         else:
             print(f"{self.name} doesn't have enough chips to call. They go all-in with {self.money} chips.")
@@ -143,7 +180,9 @@ class player:
     def bet(self, amount):
         if self.money >= amount:
             print(f"{self.name} bets {amount} money.")
+            print("-" * 20)
             self.money -= amount
+            self.initial_bet = amount
             return amount
         else:
             print(f"{self.name} doesn't have enough money to bet. They go all-in with {self.money} chips.")
@@ -151,13 +190,16 @@ class player:
             self.money = 0
             return bet_all_in
 
+    def raise_pot(self,amount):
+        pass
+
     def filter_by_suit(self,cards, target_suit):
             return [card for card in cards if card.suit == target_suit]
 
     def determine_highest(self, flop):
         hand = self.hand
         # Check for various hand combinations starting from the strongest
-        straight_flush = self.hasStraightFlush(hand,flop)
+        straight_flush = self.hasStraightFlush(hand, flop)
         if straight_flush:
             if straight_flush == 14:
                 self.highest = (10, straight_flush)
@@ -177,7 +219,7 @@ class player:
 
         flush = self.hasFlush(hand, flop)
         if flush:
-            self.highest = (6, flush.value)
+            self.highest = (6, flush)
             return
 
         straight = self.hasStraight(hand, flop)
@@ -192,7 +234,7 @@ class player:
 
         two_pairs = self.has2pairs(hand,flop)
         if two_pairs:
-            self.highest = [3,two_pairs]
+            self.highest = [3, two_pairs]
             return
 
         pair = self.hasPair(hand, flop)
@@ -201,7 +243,7 @@ class player:
             return
 
         # If no strong hand is found, determine high card
-        high_card = self.highcard(hand)
+        high_card = self.highcard([], hand)
         self.highest = (1, high_card)
 
 
