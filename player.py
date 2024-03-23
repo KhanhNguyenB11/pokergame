@@ -1,11 +1,14 @@
 from collections import Counter
 class player:
-    def __init__(self,name,money = 5000):
+    def __init__(self,name, conn, money = 5000):
         self.name = name
         self.highest = ()
         self.hand = []
         self.money = money
         self.initial_bet = 0
+        self.host = False
+        self.conn = conn
+        self.room = None
 
     def print_value_of_hand(self,cards):
         values = [card.value for card in self.hand]
