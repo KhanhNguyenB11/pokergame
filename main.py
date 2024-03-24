@@ -2,7 +2,7 @@ from deck import Deck
 from player import player
 import socket
 import threading
-
+from game_state import game_state
 
 poker_ranks = {
     "High Card": 1,
@@ -28,11 +28,6 @@ def print_name_of_flop(flop):
     print("-"*30)
     return(f"Flop: {[card.name for card in flop]}")
 
-def check_winner(pot):
-        if len(player_list) == 1:
-            print(f"{player_list[0].name} wins!!!\n +{pot}$")
-            player_list[0].money += pot
-
 
 def print_current_round(round_number):
     if round_number in poker_rounds:
@@ -41,122 +36,127 @@ def print_current_round(round_number):
         return ("Invalid round number.")
 
 def print_action(player, current_bet):
-    print(f"\n{player.name}, select choice:")
+    s = ""
     if current_bet == 0:
-        return ("1.Bet  2.Fold  3.Check")
+        s = "1.Bet  2.Fold  3.Check \n"
     else:
-        return ("1.Call  2.Raise  3.Fold")
-    player.print_name_of_hand()
-    return (f"Your Money: {player.money}")
+        s = "1.Call  2.Raise  3.Fold \n"
+    s += player.print_name_of_hand() + (f"Your Money: {player.money}")
+    return s
 
+
+state = None
 
 def game(player_list):
-    flop = []
-    pot = 0
-    small_blind = 5
-    can_bet = True
     deck = Deck()
     deck.shuffle()
-    dealCards(player_list, deck)
-
+    small_blind = 5
+    global state
+    state = game_state(deck, small_blind * 2)
+    dealCards(player_list, state.deck)
     # 5 rounds of poker loop
     for i in range(5):
+        state.round = i
         if len(player_list) == 1:
             print(f"{player_list[0].name} wins")
-            player_list[0].money += pot
+            player_list[0].money += state.pot
+            player_list[0].conn.sendall(f"{player.name} wins".encode())
             break
-        current_bet = 0
+        state.current_bet = 0
         if i == 0:
-            make_pot(player_list, small_blind, pot)
-            current_bet = small_blind * 2
+            state.pot = make_pot(player_list, small_blind, state.pot)
+            state.current_bet = small_blind * 2
         if i == 1:
-            flop_deal(flop, deck)
+            flop_deal(state.flop, state.deck)
         elif i == 2 or i == 3:
-            flop.append(deck.draw_card())
+            state.flop.append(state.deck.draw_card())
         #last round
         elif i == 4:
-            winner = showdown(player_list, flop)
+            winner = showdown(player_list, state.flop)
             if type(winner) is list:
                 for player in winner:
                     print(f"{player.name} wins")
-                    player.money += pot//len(winner)
+                    player.conn.sendall(f"{player.name} wins".encode())
+                    player.money += state.pot//len(winner)
             else:
+                winner.conn.sendall(f"{winner.name} wins".encode())
                 print(f"{winner.name} wins")
-                winner.money += pot
+                winner.money += state.pot
             break
-
         # loop stop if its go back to highest_better
-        highest_better = None
-        active_player = player_list[0]
+        state.highest_better = None
+        state.active_player = player_list[0]
         # loop to end round if all players have checked or called the highest raise/bet
-        while highest_better is not active_player:
+        while state.highest_better is not state.active_player:
             # players action
             for player in player_list:
                 if len(player_list) == 1:
                     break
-                if not highest_better:
-                    highest_better = player_list[0]
-                # loop to check for invalid action
-                while True:
-                    s = ""
-                    if i != 0:
-                        s+= print_name_of_flop(flop) + "\n"
-
-                    s+= print_current_round(i) + "\n"
-                    s+= print_action(player, current_bet) + "\n"
-                    s+=(f"Current bet: {current_bet}") +"\n"
-                    player.conn.sendall(s.encode())
-                    data = player.conn.recv(1024).decode()
-                    if data:
-                        choice = data.split()[0]
-                        if choice == "1":
-                            if current_bet != 0:
-                                player.call(current_bet)
-                                break
-                            else:
-                                bet_amount = int(input("Enter the amount: "))
-                                if bet_amount < current_bet:
-                                    print("Amount not valid!")
-                                    continue
-                                else:
-                                    player.bet(bet_amount)
-                                    current_bet = bet_amount
-                                    highest_better = player
-                                    break
-                        elif choice == "2":
-                            if current_bet == 0:
-                                player.fold()
-                            bet_amount = int(input("Enter the amount: "))
-                            if bet_amount < current_bet:
-                                print("Amount not valid!")
-                                continue
-                            else:
-                                player.bet(bet_amount)
-                                current_bet = bet_amount
-                                highest_better = player
-                                break
-                        elif choice == "3":
-                            if current_bet > 0:
-                                player.fold()
-                                player_list.remove(player)
-                                break
-                            else:
-                                print(f"{player.name} check")
-                                break
-                        elif choice == "4":
-                            if current_bet == 0:
-                                pass
-                                break
-                            else:
-                                player.fold()
-                                player_list.remove(player)
-                                break
-                        else:
-                            player.conn.sendall("Invalid choice. Please select again.").encode()
-                            continue
+                if not state.highest_better:
+                    state.highest_better = player_list[0]
+                proccess_action(player, player_list)
 
 
-def make_pot(player_list,small_blind,pot):
+def proccess_action(player, player_list):
+    global state
+    while True:
+        s = f"{player.name} TURN\n"
+        if state.round != 0:
+            s += print_name_of_flop(state.flop) + "\n"
+        s += print_current_round(state.round) + "\n"
+        s += print_action(player, state.current_bet) + "\n"
+        s += (f"Current bet: {state.current_bet}") + "\n"
+        player.conn.sendall(s.encode())
+        data = player.conn.recv(1024).decode()
+        if data:
+            choice = data.split()[2]
+            if choice == "1":
+                if state.current_bet != 0:
+                    player.call(state.current_bet)
+                    broadcast_to_others(player, player_list, "Call")
+                    break
+                else:
+                    player.conn.sendall("Enter the amount".encode())
+                    bet_amount = int(player.conn.recv(1024).decode().split()[2])
+                    if bet_amount < state.current_bet:
+                        player.conn.sendall("Amount not valid!".encode())
+                        continue
+                    else:
+                        player.bet(bet_amount)
+                        state.current_bet = bet_amount
+                        state.highest_better = player
+                        broadcast_to_others(player, player_list, f"Bet {bet_amount}")
+                        break
+            elif choice == "2":
+                if state.current_bet == 0:
+                    player.fold()
+                else:
+                    player.conn.sendall("Enter the amount").encode()
+                    bet_amount = player.conn.recv(1024).decode()
+                    if bet_amount < state.current_bet:
+                        player.conn.sendall("Amount not valid!").encode()
+                        continue
+                    else:
+                        player.bet(bet_amount)
+                        state.current_bet = bet_amount
+                        state.highest_better = player
+                        broadcast_to_others(player, player_list, f"Bet {bet_amount}")
+                        break
+            elif choice == "3":
+                if state.current_bet > 0:
+                    player.fold()
+                    player_list.remove(player)
+                    broadcast_to_others(player, player_list, "Fold")
+                    break
+                else:
+                    broadcast_to_others(player, player_list, f"Check")
+                    player.conn.sendall("Check").encode()
+                    break
+            else:
+                player.conn.sendall("Invalid choice. Please select again.").encode()
+                continue
+
+def make_pot(player_list, small_blind, pot):
     small = player_list[0]
     big = player_list[1]
     small.money -= small_blind
@@ -164,10 +164,10 @@ def make_pot(player_list,small_blind,pot):
     small.initial_bet = small_blind
     big.initial_bet = small_blind * 2
     pot += small_blind*3
-
+    return pot
 # args: a list of players and flop cards
 # return: a list of winner
-def showdown(players,flop):
+def showdown(players, flop):
     for player in players:
         player.determine_highest(flop)
     # Sort players by the rank of their highest hands
@@ -265,17 +265,17 @@ def find_player_with_n_highest_value(players, n=0):
     return [p for p in players if p.highest[1][n].value >= highest_value]
 
 
-def filter_by_value(players,value):
+def filter_by_value(players, value):
     return [player for player in players if player.highest[1][0] == value]
 
 
-def dealCards(p_list,deck):
+def dealCards(p_list, deck):
     for player in p_list:
         for _ in range(2):
             player.hand.append(deck.draw_card())
 
 
-def flop_deal(flop,deck):
+def flop_deal(flop, deck):
     for _ in range(3):
         flop.append(deck.draw_card())
 
@@ -290,11 +290,9 @@ PORT = 65432
 # Define dictionary to store connected clients and their room IDs
 connected_clients = {}
 
-
 def handle_client(conn, addr):
     """Handles communication with a connected client."""
     print(f'Connected by {addr}')
-    current_player = None
     try:
         # Check for JOIN message format
         data = conn.recv(1024).decode()
@@ -311,7 +309,7 @@ def handle_client(conn, addr):
                 current_player.room = room_id
                 if len(connected_clients[room_id]) == 0:
                     current_player.host = True
-                    conn.sendall(f'{current_player.name} created room successfully!'.encode())
+                    conn.sendall(f'{current_player.name} created room successfully! You are the host.'.encode())
                 else:
                     conn.sendall('Joined room successfully!'.encode())
                 connected_clients[room_id].append(current_player)
@@ -331,21 +329,13 @@ def handle_client(conn, addr):
             # Print the received message (optional)
             print(f'Client {addr} in room {room_id}: {data}')
             room_clients = connected_clients.get(room_id)
-            if data.endswith("START") and current_player.host == True and len(room_clients) > 1:
-                data = "GAME START"
-                game(room_clients)
+            if data.endswith("START") and current_player.host and len(room_clients) > 1:
+                game(room_clients.copy())
             elif len(room_clients) < 2:
                 data = "Not enough player"
-
-            # Find room clients to broadcast to
-            if room_clients:
-                for client in room_clients:
-                    try:
-                        # Broadcast message with sender information
-                        client.conn.sendall(f'{data}'.encode())
-                    except ConnectionAbortedError:
-                        print(f'Client {addr} disconnected unexpectedly.')
-                        connected_clients[room_id].remove(client)
+            elif data.startswith("ACTION"):
+                # Process the action and update the game state
+               proccess_action(current_player, room_clients)
 
     except ConnectionError as e:
         print(f'Error communicating with client {addr}: {e}')
@@ -354,6 +344,12 @@ def handle_client(conn, addr):
             connected_clients[room_id].remove(current_player)
         conn.close()
         print(f'Client {addr} disconnected.')
+
+
+def broadcast_to_others(current_player,player_list,action):
+    for player in player_list:
+            message = f"{current_player.name} {action}"
+            player.conn.sendall(message.encode())
 
 
 def main():

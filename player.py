@@ -15,7 +15,7 @@ class player:
         print(values)
 
     def print_name_of_hand(self):
-        print(f"Your hand: {[card.name for card in self.hand]}")
+        return (f"Your hand: {[card.name for card in self.hand]}\n")
 
     def sort_hand_by_value(self,cards):
         return sorted(cards, key=lambda card: card.value,reverse=True)

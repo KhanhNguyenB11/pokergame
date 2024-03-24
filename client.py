@@ -14,18 +14,29 @@ def connect_and_join(room_id, name):
         # Receive confirmation message
         data = s.recv(1024).decode()
         print(data)  # Print confirmation message from server
-
-        # Game loop to maintain connection and send/receive messages
-        while True:
+        if data.find("host") != -1:
             message = input("Enter your message (or 'quit' to disconnect): ")
             if message.lower() == 'quit':
                 return s
-            # Send formatted message (room ID + sender + message)
             formatted_message = f"{room_id} {name} {message}"
             s.sendall(formatted_message.encode())
-            # Receive data from server
+        print("Waiting for others player turn...")
+        # Game loop to maintain connection and send/receive messages
+        while True:
             data = s.recv(1024).decode()
-            print(f"Received: {data}")
+            if not data:
+                continue
+            print(f"{data}")
+            if data.startswith(f"{name} TURN") or data == "Enter the amount":
+                message = input("Enter your message (or 'quit' to disconnect): ")
+                if message.lower() == 'quit':
+                    return s
+                # Send formatted message (room ID + sender + message)
+                formatted_message = f"ACTION {name} {message}"
+                s.sendall(formatted_message.encode())
+
+
+
 
 
 if __name__ == '__main__':
