@@ -174,6 +174,7 @@ class player:
             print(f"{self.name} calls the bet of {current_bet}.")
             print("-"*20)
             self.money -= current_bet - self.initial_bet
+            self.initial_bet = current_bet
             return True
         else:
             print(f"{self.name} doesn't have enough chips to call. They go all-in with {self.money} chips.")
