@@ -24,8 +24,8 @@ poker_rounds = {
     3: "River",
     4: "Showdown"
 }
-
-
+connected_clients = {}
+state = None
 def print_name_of_flop(flop):
     print("-" * 30)
     return (f"Flop: {[card.name for card in flop]}")
@@ -46,9 +46,6 @@ def print_action(player, current_bet):
         s = "1.Call  2.Raise  3.Fold \n"
     s += player.print_name_of_hand() + (f"Your Money: {player.money}")
     return s
-
-
-state = None
 
 
 def game(player_list):
@@ -88,22 +85,24 @@ def game(player_list):
                 broadcast_to_others(winner, player_in_room, "wins")
                 winner.money += state.pot
             break
+        put_money_into_pot(state)
         state.player_list = reset_players_bet(state.player_list)
         # loop stop if its go back to highest_better
         state.highest_better = state.player_list[-1]
         state.active_player = state.player_list[0]
-        player_index = 0
+        player_index = state.player_list.index(state.active_player)
         # loop to end round if all players have checked or called the highest raise/bet
         while True:
             if len(state.player_list) == 1:
                 break
             # condition to break if round > 1 and someone has made a bet
             player = state.player_list[player_index]
+            state.active_player = player
             # player is the highest_better and has made a bet, used for round > 0
             if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and player.initial_bet != 0:
                 break
             # players action
-            state.active_player = player
+
 
             send_available_action(player, state.player_list, state)
             # loop to wait for player's action
@@ -124,15 +123,24 @@ def game(player_list):
                 player_index += 1
 
 
+def put_money_into_pot(state):
+    if state.round != 0:
+        for player in state.player_list:
+            state.pot += player.initial_bet
+
+
 def reset_players_bet(player_list):
     for player in player_list:
         player.initial_bet = 0
     return player_list
 
+
 def reset_players_hand(player_list):
     for player in player_list:
         player.hand = []
     return player_list
+
+
 def send_available_action(player, player_list, state):
     s = f"{player.name} TURN\n"
     if state.round != 0:
@@ -176,16 +184,16 @@ def process_action(player, player_list, choice):
                 player_list.remove(player)
                 break
             else:
-                player.conn.sendall("Enter the amount").encode()
-                bet_amount = player.conn.recv(1024).decode()
-                if bet_amount < state.current_bet:
+                player.conn.sendall("Enter the amount".encode())
+                bet_amount = int(player.conn.recv(1024).decode().split()[2])
+                if int(bet_amount) < state.current_bet:
                     player.conn.sendall("Amount not valid!").encode()
                     continue
                 else:
                     player.bet(bet_amount)
                     state.current_bet = bet_amount
                     state.highest_better = player
-                    broadcast_to_others(player, player_list, f"Bet {bet_amount}")
+                    broadcast_to_others(player, player_list, f"Raise {bet_amount}")
                     break
         elif choice == "3":
             if state.current_bet > 0:
@@ -348,10 +356,11 @@ HOST = 'localhost'  # Replace with actual server IP if needed
 PORT = 65432
 
 # Define dictionary to store connected clients and their room IDs
-connected_clients = {}
+
 
 
 def handle_client(conn, addr):
+    global connected_clients
     """Handles communication with a connected client."""
     print(f'Connected by {addr}')
     try:
@@ -403,9 +412,18 @@ def handle_client(conn, addr):
         print(f'Error communicating with client {addr}: {e}')
     finally:
         if current_player is not None:
+            if current_player.host:
+                host_index = connected_clients[room_id].index(current_player)
+                if host_index + 1 < len(connected_clients[room_id]):
+                    new_host = connected_clients[room_id][host_index + 1]
+
+                else:
+                    new_host = connected_clients[room_id][0]
+                new_host.host = True
+                new_host.conn.sendall(f'{new_host.name} created room successfully! You are the host.'.encode())
             connected_clients[room_id].remove(current_player)
-        conn.close()
-        print(f'Client {addr} disconnected.')
+            conn.close()
+            print(f'Client {addr} disconnected.')
 
 
 def broadcast_to_others(current_player, player_list, action):

@@ -30,7 +30,9 @@ def connect_and_join(room_id, name):
             if not data:
                 continue
             print(f"{data}")
-            if data.startswith(f"{name} TURN") or data == "Enter the amount":
+            if data.startswith(f"{name} TURN") or data == "Enter the amount" or data.find("host") != -1:
+                if data.find("host") != -1:
+                    host = True
                 message = input("Enter your message (or 'quit' to disconnect): ")
                 if message.lower() == 'quit':
                     return s
