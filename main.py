@@ -89,38 +89,35 @@ def game(player_list):
         state.player_list = reset_players_bet(state.player_list)
         # loop stop if its go back to highest_better
         state.highest_better = state.player_list[-1]
-        state.active_player = state.player_list[0]
-        player_index = state.player_list.index(state.active_player)
+        state.checked = []
+        if state.round == 0:
+            state.active_player = state.player_list[0]
         # loop to end round if all players have checked or called the highest raise/bet
         while True:
             if len(state.player_list) == 1:
                 break
-            # condition to break if round > 1 and someone has made a bet
-            player = state.player_list[player_index]
-            state.active_player = player
+            player = state.active_player
+            if state.round == 0 and state.highest_better is player and state.current_bet != small_blind * 2:
+                break
             # player is the highest_better and has made a bet, used for round > 0
-            if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and player.initial_bet != 0:
+            if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and state.current_bet != 0:
                 break
             # players action
-
 
             send_available_action(player, state.player_list, state)
             # loop to wait for player's action
             while state.active_player is player:
                 pass
 
-            # if the last player had acted but the bet is = 0
-            if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and player.initial_bet == 0:
+            # if all check
+            if state.round > 0 and len(state.checked) == len(state.player_list):
                 break
 
             # condition to break, used for preflop(round = 0) only
             # if this is a last player, and they don't make the bet(current_bet == small_blind)
             if state.round == 0 and state.highest_better is player and state.current_bet == small_blind * 2:
                 break
-            if player_index + 1 >= len(state.player_list):
-                player_index = 0
-            else:
-                player_index += 1
+
 
 
 def put_money_into_pot(state):
@@ -205,6 +202,7 @@ def process_action(player, player_list, choice):
             else:
                 broadcast_to_others(player, player_list, "Check")
                 print(f"{player.name} check")
+                state.checked.append(player.name)
                 break
         else:
             player.conn.sendall("Invalid choice. Please select again.".encode())

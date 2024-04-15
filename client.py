@@ -28,6 +28,7 @@ def connect_and_join(room_id, name):
         while True:
             data = s.recv(1024).decode()
             if not data:
+                print("sam lol")
                 continue
             print(f"{data}")
             if data.startswith(f"{name} TURN") or data == "Enter the amount" or data.find("host") != -1:
