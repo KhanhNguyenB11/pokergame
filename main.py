@@ -3,7 +3,7 @@ from player import player
 import socket
 import threading
 from game_state import game_state
-
+import pickle
 poker_ranks = {
     "High Card": 1,
     "One Pair": 2,
@@ -56,67 +56,67 @@ def game(player_list):
     player_in_room = list(player_list)
     state = game_state(deck, reset_players_hand(player_list), small_blind * 2)
     dealCards(player_list, state.deck)
-    # 5 rounds of poker loop
-    for i in range(5):
-        print(i)
-        state.round = i
-        if len(state.player_list) == 1:
-            print(f"{player_list[0].name} wins")
-            state.player_list[0].money += state.pot
-            broadcast_to_others(state.player_list[0], player_in_room, "wins")
-            break
-        state.current_bet = 0
-        if i == 0:
-            state.pot = make_pot(state.player_list, small_blind, state.pot)
-            state.current_bet = small_blind * 2
-        if i == 1:
-            flop_deal(state.flop, state.deck)
-        elif i == 2 or i == 3:
-            state.flop.append(state.deck.draw_card())
-        # last round
-        elif i == 4:
-            winner = showdown(state.player_list, state.flop)
-            if type(winner) is list:
-                for player in winner:
-                    print(f"{player.name} wins")
-                    broadcast_to_others(winner, player_in_room, "wins")
-                    player.money += state.pot // len(winner)
-            else:
-                broadcast_to_others(winner, player_in_room, "wins")
-                winner.money += state.pot
-            break
-        put_money_into_pot(state)
-        state.player_list = reset_players_bet(state.player_list)
-        # loop stop if its go back to highest_better
-        state.highest_better = state.player_list[-1]
-        state.checked = []
-        if state.round == 0:
-            state.active_player = state.player_list[0]
-        # loop to end round if all players have checked or called the highest raise/bet
-        while True:
-            if len(state.player_list) == 1:
-                break
-            player = state.active_player
-            if state.round == 0 and state.highest_better is player and state.current_bet != small_blind * 2:
-                break
-            # player is the highest_better and has made a bet, used for round > 0
-            if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and state.current_bet != 0:
-                break
-            # players action
-
-            send_available_action(player, state.player_list, state)
-            # loop to wait for player's action
-            while state.active_player is player:
-                pass
-
-            # if all check
-            if state.round > 0 and len(state.checked) == len(state.player_list):
-                break
-
-            # condition to break, used for preflop(round = 0) only
-            # if this is a last player, and they don't make the bet(current_bet == small_blind)
-            if state.round == 0 and state.highest_better is player and state.current_bet == small_blind * 2:
-                break
+    # # 5 rounds of poker loop
+    # for i in range(5):
+    #     print(i)
+    #     state.round = i
+    #     if len(state.player_list) == 1:
+    #         print(f"{player_list[0].name} wins")
+    #         state.player_list[0].money += state.pot
+    #         broadcast_to_others(state.player_list[0], player_in_room, "wins")
+    #         break
+    #     state.current_bet = 0
+    #     if i == 0:
+    #         state.pot = make_pot(state.player_list, small_blind, state.pot)
+    #         state.current_bet = small_blind * 2
+    #     if i == 1:
+    #         flop_deal(state.flop, state.deck)
+    #     elif i == 2 or i == 3:
+    #         state.flop.append(state.deck.draw_card())
+    #     # last round
+    #     elif i == 4:
+    #         winner = showdown(state.player_list, state.flop)
+    #         if type(winner) is list:
+    #             for player in winner:
+    #                 print(f"{player.name} wins")
+    #                 broadcast_to_others(winner, player_in_room, "wins")
+    #                 player.money += state.pot // len(winner)
+    #         else:
+    #             broadcast_to_others(winner, player_in_room, "wins")
+    #             winner.money += state.pot
+    #         break
+    #     put_money_into_pot(state)
+    #     state.player_list = reset_players_bet(state.player_list)
+    #     # loop stop if its go back to highest_better
+    #     state.highest_better = state.player_list[-1]
+    #     state.checked = []
+    #     if state.round == 0:
+    #         state.active_player = state.player_list[0]
+    #     # loop to end round if all players have checked or called the highest raise/bet
+    #     while True:
+    #         if len(state.player_list) == 1:
+    #             break
+    #         player = state.active_player
+    #         if state.round == 0 and state.highest_better is player and state.current_bet != small_blind * 2:
+    #             break
+    #         # player is the highest_better and has made a bet, used for round > 0
+    #         if state.round > 0 and player is state.highest_better and state.current_bet == player.initial_bet and state.current_bet != 0:
+    #             break
+    #         # players action
+    #
+    #         send_available_action(player, state.player_list, state)
+    #         # loop to wait for player's action
+    #         while state.active_player is player:
+    #             pass
+    #
+    #         # if all check
+    #         if state.round > 0 and len(state.checked) == len(state.player_list):
+    #             break
+    #
+    #         # condition to break, used for preflop(round = 0) only
+    #         # if this is a last player, and they don't make the bet(current_bet == small_blind)
+    #         if state.round == 0 and state.highest_better is player and state.current_bet == small_blind * 2:
+    #             break
 
 
 
@@ -355,7 +355,11 @@ PORT = 65432
 
 # Define dictionary to store connected clients and their room IDs
 
+def getPlayers(player,player_list):
 
+    Mylist=[x.name for x in player_list]
+    Mylist.remove(player.name)
+    return pickle.dumps(Mylist)
 
 def handle_client(conn, addr):
     global connected_clients
@@ -391,14 +395,24 @@ def handle_client(conn, addr):
             return  # Exit the loop on invalid format
         # Broadcast messages to clients in the same room
         while True:
+            room_clients = connected_clients.get(room_id)
+
             data = conn.recv(1024).decode()
             if not data:
                 break
             # Print the received message (optional)
-            print(f'Client {addr} in room {room_id}: {data}')
-            room_clients = connected_clients.get(room_id)
-            if data.endswith("START") and current_player.host and len(room_clients) > 1:
+            if data=="get_number":
+                conn.sendall(f"{len(room_clients)}".encode())
+            if data == "get_players":
+                for i in state.player_list:
+                    print(i.name)
+                conn.send(getPlayers(current_player,state.player_list))
+            if data == "get_hands":
+                conn.send(pickle.dumps(current_player.hand))
+            if data=="START":
+                print("START")
                 game(room_clients.copy())
+
             elif len(room_clients) < 2:
                 data = "Not enough player"
             elif data.startswith("ACTION"):

@@ -9,5 +9,6 @@ class game_state:
         self.deck = deck
         self.next = False
         self.player_list = player_list
+        self.current_player=player_list[0]
         self.checked = []
         self.called = []

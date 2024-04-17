@@ -47,6 +47,8 @@ def handle_client(conn, addr):
             print(f'Client {addr} in room {room_id}: {data}')
 
             room_clients = connected_clients.get(room_id)
+            if(data=="get_number"):
+                client.conn.sendall(f'10'.encode())
             if room_clients:
                 for client in room_clients:
                     try:
