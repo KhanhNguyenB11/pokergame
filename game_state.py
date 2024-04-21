@@ -8,7 +8,9 @@ class game_state:
         self.active_player = None
         self.deck = deck
         self.next = False
+        self.first_index=0
+        self.Current_first_index=self.first_index
         self.player_list = player_list
-        self.current_player=player_list[0]
+        self.current_player=player_list[self.first_index]
         self.checked = []
         self.called = []

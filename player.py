@@ -9,7 +9,8 @@ class player:
         self.host = False
         self.conn = conn
         self.room = None
-
+    def __str__(self):
+        return f"{self.name}"
     def print_value_of_hand(self,cards):
         values = [card.value for card in self.hand]
         print(values)

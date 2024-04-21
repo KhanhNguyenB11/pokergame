@@ -1,6 +1,7 @@
 import sys
 import  Draw
 import pygame
+import time
 from Network import Network
 HOST = 'localhost'
 PORT = 65432
@@ -33,57 +34,27 @@ Enter_rect = pygame.Rect(300, 300, 200, 30)
 input_color2 = BLACK
 input_color1 = BLACK
 
-
+BUTTON_POSITIONS=(550,500,)
 room_id = ""
 name = ""
 def Waiting(network,host):
     pygame.display.set_caption("Waiting")
     running = True
-    dragging = False
 
     print(HOST)
     SCREEN.fill((0, 0, 0))
 
 
-    current_value=0
-    max_value=5000
-    slider_x=550
-    thumb_radius=10
-    slider_width=200
-    slider_y=570
-
     while running:
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                # Check if the mouse click is on the thumb
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if (slider_x - 10 <= mouse_x <= slider_x + slider_width + thumb_radius and
-                        slider_y - thumb_radius <= mouse_y <= slider_y + thumb_radius):
-                    dragging = True
-            elif event.type == pygame.MOUSEBUTTONUP:
-                dragging = False
-            elif event.type == pygame.MOUSEMOTION and dragging:
-                # Update thumb position when dragging
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                current_value = min(
-                    max((mouse_x - slider_x) / slider_width * (max_value - 0) +0, 0),
-                    max_value)
+
 
         SCREEN.blit(background_image, (0, 0))
         number=(int)(network.sendData(f"get_number"))
-
-        Draw.drawChoiceButton(SCREEN,True,font)
-
-        pygame.draw.rect(SCREEN, (206, 228, 19), (slider_x,slider_y , slider_width, 10))
-        thumb_x = int(slider_x + (current_value - 0) / (max_value - 0) * slider_width)
-        pygame.draw.circle(SCREEN, (19, 228, 23), (thumb_x, slider_y+5), thumb_radius)
-        current_valueSur = font.render(f'{int(current_value)}', True, (250, 250, 250))
-        current_valueText = current_valueSur.get_rect()
-        current_valueText.center = (slider_x-50, slider_y)
-        SCREEN.blit(current_valueSur, current_valueText)
 
 
 
@@ -98,6 +69,7 @@ def Waiting(network,host):
             SCREEN.blit(name_surface, name_rect)
         else:
             if(host):
+
                 network.sendData("START")
 
             Play(network)
@@ -109,25 +81,80 @@ def Play(network):
     pygame.display.set_caption("Play")
     running = True
     SCREEN.fill((0, 0, 0))
-    list_player=(network.GetObs(f"get_players"))
+
+    current_value = 0
+    max_value = 5000
+    slider_x = 550
+    thumb_radius = 10
+    slider_width = 200
+    slider_y = 570
+    dragging = False
+    min_value=0
+    fold_circle = pygame.Rect((BUTTON_POSITIONS[0], BUTTON_POSITIONS[1], 50, 50))
+    check_circle = pygame.Rect((BUTTON_POSITIONS[0] + 75, BUTTON_POSITIONS[1], 50, 50))
+    rise_circle = pygame.Rect((BUTTON_POSITIONS[0] + 150, BUTTON_POSITIONS[1], 50, 50))
+    flag_turn=False
 
     while running:
+        list_player = (network.GetObs(f"get_players"))
         data = (network.GetObs(f"get_hands"))
-        # turn=(network.sendData(f"getTurn")) == "True"
+        flop = (network.GetObs(f"get_flop"))
+        max_value=int(network.sendData(f"get_playerMoney"))
+        player_bet = int(network.sendData(f"get_playerBet"))
+        min_value= int(network.sendData(f"get_currentBet"))
+        turn=(network.sendData(f"get_turn")) == "True"
+
+        # current_bet=int(network.sendData(f"get_currentBet"))
+
         if not data:
             break
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if turn:
+                    if check_circle.collidepoint(event.pos):
+                        network.sendData("ACTION 1")
+                    if fold_circle.collidepoint(event.pos):
+                        network.sendData("ACTION 2")
+                    if rise_circle.collidepoint(event.pos):
+                        network.sendData(f"ACTION 3 {int(current_value)}")
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    if (slider_x - 10 <= mouse_x <= slider_x + slider_width + thumb_radius and
+                            slider_y - thumb_radius <= mouse_y <= slider_y + thumb_radius):
+                        dragging = True
+            elif event.type == pygame.MOUSEBUTTONUP and turn:
+                dragging = False
+            elif event.type == pygame.MOUSEMOTION and dragging and turn:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                current_value = min(
+                    max((mouse_x - slider_x) / slider_width * (max_value - min_value) +min_value, min_value),
+                    max_value)
+        if (not flag_turn) and turn and min_value==0:
+            current_value=min_value
+            flag_turn=True
+        elif not turn:
+            flag_turn=False
         SCREEN.blit(background_image, (0, 0))
         Draw.drawCards(SCREEN,data)
-        Draw.drawPlayers(SCREEN,list_player,font)
-        # Draw.drawChoiceButton(SCREEN,turn,font)
-        name_surface = font.render('Playing', True, (250, 250, 250))
-        name_rect = name_surface.get_rect()
-        name_rect.center = (400, 250)
-        SCREEN.blit(name_surface, name_rect)
+        Draw.drawPlayers(SCREEN,list_player,player_bet)
+        Draw.drawflop(SCREEN,flop)
+
+        if turn:
+            Draw.drawChoiceButton(SCREEN, network, fold_circle, check_circle, rise_circle)
+            pygame.draw.rect(SCREEN, (206, 228, 19), (slider_x, slider_y, slider_width, 10))
+            thumb_x = int(slider_x + (current_value - min_value) / (max_value - min_value) * slider_width)
+            pygame.draw.circle(SCREEN, (19, 228, 23), (thumb_x, slider_y + 5), thumb_radius)
+            current_valueSur = font.render(f'{int(current_value)}', True, (250, 250, 250))
+            current_valueText = current_valueSur.get_rect()
+            current_valueText.center = (slider_x - 50, slider_y)
+            SCREEN.blit(current_valueSur, current_valueText)
+
+        # name_surface = font.render('Playing', True, (250, 250, 250))
+        # name_rect = name_surface.get_rect()
+        # name_rect.center = (400, 250)
+        # SCREEN.blit(name_surface, name_rect)
 
         pygame.display.update()
         pygame.display.flip()
@@ -167,7 +194,8 @@ def Menu():
                 if Enter_rect.collidepoint(event.pos):
                     room_id=text_input2
                     name = text_input1
-                    game_state = "play"
+                    if room_id!="" and name !="":
+                        game_state = "play"
                 if input_rect1.collidepoint(event.pos):
                     input_active1 = True
                     input_active2 = False
