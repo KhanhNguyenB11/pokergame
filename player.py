@@ -183,17 +183,17 @@ class player:
             return False
 
     def bet(self, amount):
-        if self.money >= amount:
+        if self.money >= self.initial_bet+amount:
             print(f"{self.name} bets {amount} money.")
             print("-" * 20)
             self.money -= amount
-            self.initial_bet = amount
-            return amount
+            self.initial_bet = self.initial_bet+amount
+            return self.initial_bet
         else:
             print(f"{self.name} doesn't have enough money to bet. They go all-in with {self.money} chips.")
             bet_all_in = self.money
             self.money = 0
-            return bet_all_in
+            return self.initial_bet+bet_all_in
 
     def raise_pot(self,amount):
         pass

@@ -165,8 +165,8 @@ def process_action(player, player_list, data):
             player.call(state.current_bet)
 
     elif choice == "2":
-        if state.current_bet == 0:
-          player.initial_bet=-1
+        player.initial_bet=-1
+        state.active_players.remove(player)
         # else:
         #     player.conn.sendall("Enter the amount".encode())
         #     bet_amount = int(player.conn.recv(1024).decode().split()[2])
@@ -178,11 +178,14 @@ def process_action(player, player_list, data):
         #         state.highest_better = player
         #         broadcast_to_others(player, player_list, f"Raise {bet_amount}")
     elif choice == "3":
+
+        bet_amount=int(data.split()[2])
+        amount=player.bet(bet_amount)
         if state.current_bet > 0:
-            bet_amount=int(data.split()[2])
-            player.bet(bet_amount)
+            state.current_bet=amount
+        else:
             state.current_bet = bet_amount
-            state.highest_better = player
+        state.highest_better = player
 
         #     player.fold()
         #     print(f"{player.name} fold")
@@ -192,6 +195,10 @@ def process_action(player, player_list, data):
         #     broadcast_to_others(player, player_list, "Check")
         #     print(f"{player.name} check")
         #     state.checked.append(player.name)
+    if (len(state.active_players) == 1):
+        winner=state.active_players[0]
+        winner.money += state.pot
+        state.winner=winner
     player_temp=player_list[state.Current_first_index]
     while(player_temp.initial_bet==-1 or player_temp.money==0):
         state.Current_first_index+=1
@@ -217,6 +224,8 @@ def process_action(player, player_list, data):
 
 def processing_game():
     global state
+
+
     if len(state.flop)==0:
         flop_deal(state.flop, state.deck)
         put_money_into_pot(state)
@@ -228,6 +237,7 @@ def processing_game():
                 player.money += state.pot // len(winner)
         else:
             winner.money += state.pot
+        state.winner=winner
 
     else:
         state.flop.append(state.deck.draw_card())
@@ -377,8 +387,18 @@ def getPlayers(player,player_list):
     player_list.pop(player_index)
     myList=[]
     for player1 in player_list:
-        myList.append((player1.name,player1.initial_bet))
+        myList.append((player1.name,player1.initial_bet,player1.money,player1.hand))
     return pickle.dumps(myList)
+def getWinner(winner,pot):
+    s="Winner "
+    if type(winner) is list:
+        for w in winner:
+            s+=f" {w.name}"
+    else:
+        s+= winner.name
+    s+= f" win the pot : {pot}"
+    return s
+
 
 def handle_client(conn, addr):
     global connected_clients
@@ -431,12 +451,27 @@ def handle_client(conn, addr):
                 conn.send(f"nothing".encode())
             if data=="get_playerMoney":
                 conn.send(f"{current_player.money}".encode())
+            if data == "get_pot":
+                conn.send(f"{state.pot}".encode())
             if data=="get_playerBet":
                 conn.send(f"{current_player.initial_bet}".encode())
+            if data=="get_winner":
+                if(state.winner):
+                    conn.send(getWinner(state.winner,state.pot).encode())
+                else:
+                    conn.send(f"notthing".encode())
             if data=="get_currentBet":
                 conn.send(f"{state.current_bet}".encode())
             if data == "get_turn":
                 conn.send(f"{state.current_player==current_player}".encode())
+            if data == "can_start":
+                if state!=None:
+                    if state.winner==None:
+                        conn.send(f"True".encode())
+                    else:
+                        conn.send(f"False".encode())
+                else:
+                    conn.send(f"False".encode())
             if data == "get_flop":
                 conn.send(getHands(state.flop))
             elif len(room_clients) < 2:

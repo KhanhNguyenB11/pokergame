@@ -37,26 +37,57 @@ input_color1 = BLACK
 BUTTON_POSITIONS=(550,500,)
 room_id = ""
 name = ""
-def Waiting(network,host):
+def Waiting(network,host,room_id):
     pygame.display.set_caption("Waiting")
     running = True
-
+    number = (int)(network.sendData(f"get_number"))
     print(HOST)
     SCREEN.fill((0, 0, 0))
 
 
     while running:
 
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                # If the user clicks on the input box, toggle input_active
+                if Enter_rect.collidepoint(event.pos):
+                    if(number>1 and host):
+                        network.sendData("START")
+
+                        Play(network)
+
 
 
         SCREEN.blit(background_image, (0, 0))
+
+        room_circle = pygame.Rect((20, 20, 60, 30))
+        pygame.draw.ellipse(SCREEN, ((231, 201, 13)), room_circle)
+        room_surface = font.render(f"{room_id}", True, (0, 0, 0))
+        room_rect = room_surface.get_rect(center=(room_circle.centerx, room_circle.centery))
+        SCREEN.blit(room_surface, room_rect)
+
+
+
         number=(int)(network.sendData(f"get_number"))
+        player_money = (int)(network.sendData(f"get_playerMoney"))
+        start=(network.sendData(f"can_start")) == "True"
 
+        player_money_surface = font.render(f"{player_money}", True, (255, 255, 255))
+        player_money_rect = player_money_surface.get_rect()
+        player_money_rect.center = (410, 525)
+        SCREEN.blit(player_money_surface, player_money_rect)
+        if(start):
+            Play(network)
 
+        if(host and number>1):
+            name_surface1 = font.render('START', True, BLACK)
+            name_rect1 = name_surface1.get_rect(midleft=(Enter_rect.left + 50, Enter_rect.centery))
+            pygame.draw.rect(SCREEN, (255,255,255), Enter_rect)
+            SCREEN.blit(name_surface1, name_rect1)
 
 
 
@@ -67,13 +98,7 @@ def Waiting(network,host):
             name_rect = name_surface.get_rect()
             name_rect.center=(400,250)
             SCREEN.blit(name_surface, name_rect)
-        else:
-            if(host):
 
-                network.sendData("START")
-
-            Play(network)
-            break
         pygame.display.update()
 
 
@@ -89,12 +114,16 @@ def Play(network):
     slider_width = 200
     slider_y = 570
     dragging = False
+    winner_flag=False
     min_value=0
     fold_circle = pygame.Rect((BUTTON_POSITIONS[0], BUTTON_POSITIONS[1], 50, 50))
     check_circle = pygame.Rect((BUTTON_POSITIONS[0] + 75, BUTTON_POSITIONS[1], 50, 50))
     rise_circle = pygame.Rect((BUTTON_POSITIONS[0] + 150, BUTTON_POSITIONS[1], 50, 50))
+    time_circle = pygame.Rect((270, 320, 50, 50))
     flag_turn=False
-
+    limitTime=10000
+    winner_showtime=0
+    Pot_rect = pygame.Rect(350, 150, 120, 20)
     while running:
         list_player = (network.GetObs(f"get_players"))
         data = (network.GetObs(f"get_hands"))
@@ -102,24 +131,34 @@ def Play(network):
         max_value=int(network.sendData(f"get_playerMoney"))
         player_bet = int(network.sendData(f"get_playerBet"))
         min_value= int(network.sendData(f"get_currentBet"))
+        pot = int(network.sendData(f"get_pot"))
         turn=(network.sendData(f"get_turn")) == "True"
+        winner = (network.sendData(f"get_winner"))
+
+
+
+
 
         # current_bet=int(network.sendData(f"get_currentBet"))
 
         if not data:
             break
+
+
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and not winner_flag:
                 if turn:
                     if check_circle.collidepoint(event.pos):
                         network.sendData("ACTION 1")
                     if fold_circle.collidepoint(event.pos):
                         network.sendData("ACTION 2")
                     if rise_circle.collidepoint(event.pos):
-                        network.sendData(f"ACTION 3 {int(current_value)}")
+                        print(f"{int(current_value-player_bet)}")
+                        network.sendData(f"ACTION 3 {int(current_value-player_bet)}")
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     if (slider_x - 10 <= mouse_x <= slider_x + slider_width + thumb_radius and
                             slider_y - thumb_radius <= mouse_y <= slider_y + thumb_radius):
@@ -131,17 +170,56 @@ def Play(network):
                 current_value = min(
                     max((mouse_x - slider_x) / slider_width * (max_value - min_value) +min_value, min_value),
                     max_value)
-        if (not flag_turn) and turn and min_value==0:
+
+
+        if (not flag_turn) and turn:
             current_value=min_value
             flag_turn=True
+            start_time=pygame.time.get_ticks()
         elif not turn:
             flag_turn=False
         SCREEN.blit(background_image, (0, 0))
+        if (winner != "notthing"):
+            Draw.drawWinner(winner, SCREEN, font)
+            if not winner_flag:
+                winner_flag = True
+                winner_showtime = pygame.time.get_ticks()
+            t = pygame.time.get_ticks() - winner_showtime
+            if (t > 5000):
+                break
+
+        player_money_surface = font.render(f"{max_value}", True, (255, 255, 255))
+        player_money_rect = player_money_surface.get_rect()
+        player_money_rect.center = (410, 500)
+        SCREEN.blit(player_money_surface, player_money_rect)
+
+        pot_surface = font.render(f'POT : {pot} $', True, BLACK)
+        pot_rect = pot_surface.get_rect(midleft=(Pot_rect.left +5, Pot_rect.centery))
+        pygame.draw.rect(SCREEN, (255, 255, 255), Pot_rect)
+        SCREEN.blit(pot_surface, pot_rect)
+
+
         Draw.drawCards(SCREEN,data)
-        Draw.drawPlayers(SCREEN,list_player,player_bet)
+        Draw.drawPlayers(SCREEN,list_player,player_bet,winner_flag)
         Draw.drawflop(SCREEN,flop)
 
-        if turn:
+        if turn and not winner_flag:
+
+
+
+            timePlay=pygame.time.get_ticks()-start_time
+            if (timePlay > limitTime):
+                if(min_value<=player_bet):
+                    network.sendData("ACTION 1")
+                else:
+                    network.sendData("ACTION 2")
+            pygame.draw.ellipse(SCREEN, (0, 255, 255), time_circle)
+            tick_surface = font.render(f"{10-int(timePlay / 1000)}", True, (0, 0, 0))
+            tick_rect = tick_surface.get_rect(midleft=(time_circle.centerx, time_circle.centery))
+            tick_rect.center=(300,350)
+            SCREEN.blit(tick_surface, tick_rect)
+
+
             Draw.drawChoiceButton(SCREEN, network, fold_circle, check_circle, rise_circle)
             pygame.draw.rect(SCREEN, (206, 228, 19), (slider_x, slider_y, slider_width, 10))
             thumb_x = int(slider_x + (current_value - min_value) / (max_value - min_value) * slider_width)
@@ -253,8 +331,7 @@ def Menu():
 
         elif game_state == "play":
             host=n.setNAR(room_id,name)
-            Waiting(n,host)
-            break
+            Waiting(n,host,room_id)
         pygame.display.update()
         pygame.display.flip()
 Menu()

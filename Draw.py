@@ -1,6 +1,7 @@
 import pygame
 import time
-POSITIONS=[(120,150),(100,200),(400,100),(400,100)]
+POSITIONS=[(120,150),(60,270),(400,150),(400,250)]
+POSITIONS_BETCIRCLE=[(200,150),(120,270),(320,150),(320,250)]
 
 
 
@@ -18,9 +19,15 @@ def drawflop(screen,flop):
             card_game=pygame.image.load(f"IMGCards/{card}.png")
             card_image = pygame.transform.scale(card_game, (75, 100))
             screen.blit(card_image, (200+80*ind, 200))
+def drawWinner(winner,screen,font):
+    color =(231, 201, 13)
+    Winner_rect = pygame.Rect(150, 30, 500, 30)
+    name_surface1 = font.render(f'{winner}', True, (0,0,0))
+    name_rect1 = name_surface1.get_rect(midleft=(Winner_rect.left + 50, Winner_rect.centery))
+    pygame.draw.rect(screen, color, Winner_rect)
+    screen.blit(name_surface1, name_rect1)
 
-
-def drawPlayers(screen,players,player_bet):
+def drawPlayers(screen,players,player_bet,winner_flag):
     if players:
         font = pygame.font.SysFont(None, 24)
 
@@ -30,14 +37,29 @@ def drawPlayers(screen,players,player_bet):
             name_rect = name_surface.get_rect()
             name_rect.center = (POSITIONS[ind][0],POSITIONS[ind][1]-60)
             screen.blit(name_surface, name_rect)
+
+            player_money_surface = font.render(f"{player[2]}$", True, (255, 255, 255))
+            player_money_rect = player_money_surface.get_rect()
+            player_money_rect.center = (POSITIONS[ind][0],POSITIONS[ind][1]+30)
+            screen.blit(player_money_surface, player_money_rect)
+
+            if winner_flag:
+                for index, card in enumerate(player[3]):
+                    card_game = pygame.image.load(f"IMGCards/{card}.png")
+                    card_image = pygame.transform.scale(card_game, (45, 60))
+                    screen.blit(card_image, (POSITIONS[ind][0] + 30 * index, POSITIONS[ind][1]))
             color=(0, 255, 255)
-            if(int(player[1])>player_bet):
-                color=(231, 201, 13)
-            bet_circle = pygame.Rect((POSITIONS[ind][0]+80,POSITIONS[ind][1], 60, 30))
+            if(int(player[1])==-1):
+                color = (242, 33, 23)
+                name_surface = font.render(f"X", True, (0, 0, 0))
+            else:
+                if (int(player[1]) > player_bet):
+                    color = (231, 201, 13)
+                name_surface = font.render(f"{player[1]}", True, (0, 0, 0))
+
+            bet_circle = pygame.Rect((POSITIONS_BETCIRCLE[ind][0],POSITIONS_BETCIRCLE[ind][1], 60, 30))
             pygame.draw.ellipse(screen, color, bet_circle)
 
-            screen.blit(name_surface, name_rect)
-            name_surface = font.render(f"{player[1]}", True, (0, 0, 0))
             name_rect = name_surface.get_rect(center=(bet_circle.centerx, bet_circle.centery))
             screen.blit(name_surface, name_rect)
 

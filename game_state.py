@@ -1,3 +1,6 @@
+import enum
+
+
 class game_state:
     def __init__(self, deck, player_list, current_bet = 0, round = 0):
         self.flop = []
@@ -5,7 +8,7 @@ class game_state:
         self.round = round
         self.pot = 0
         self.highest_better = None
-        self.active_player = None
+        self.active_players = player_list.copy()
         self.deck = deck
         self.next = False
         self.first_index=0
@@ -14,3 +17,5 @@ class game_state:
         self.current_player=player_list[self.first_index]
         self.checked = []
         self.called = []
+        self.folded=[]
+        self.winner=None
