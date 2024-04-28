@@ -5,6 +5,7 @@ import threading
 import time
 from game_state import game_state
 import pickle
+import os
 poker_ranks = {
     "High Card": 1,
     "One Pair": 2,
@@ -374,8 +375,11 @@ def filter_by_highest_hand(players, target):
     return [player for player in players if player.highest[0] == target]
 
 
-HOST = 'localhost'  # Replace with actual server IP if needed
-PORT = 65432
+# HOST = 'localhost'  # Replace with actual server IP if needed
+# PORT = 65432
+
+PORT = int(os.environ(['PORT']))
+HOST = '0.0.0.0'
 
 # Define dictionary to store connected clients and their room IDs
 def getHands(hands):
