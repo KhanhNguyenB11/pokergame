@@ -375,11 +375,9 @@ def filter_by_highest_hand(players, target):
     return [player for player in players if player.highest[0] == target]
 
 
-# HOST = 'localhost'  # Replace with actual server IP if needed
-# PORT = 65432
-
+HOST = 'localhost'  # Replace with actual server IP if needed
 PORT = 65432
-HOST = socket.gethostname()
+
 
 # Define dictionary to store connected clients and their room IDs
 def getHands(hands):
