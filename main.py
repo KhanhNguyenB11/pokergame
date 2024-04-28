@@ -404,6 +404,7 @@ def handle_client(conn, addr):
     global connected_clients
     """Handles communication with a connected client."""
     print(f'Connected by {addr}')
+    current_player = None
     try:
         # Check for JOIN message format
         data = conn.recv(1024).decode()
