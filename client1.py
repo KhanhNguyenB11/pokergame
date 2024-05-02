@@ -3,10 +3,31 @@ import  Draw
 import pygame
 import time
 from Network import Network
-HOST = 'https://gull-fit-hopefully.ngrok-free.app/'
-# HOST = 'localhost'
-PORT = 65432
+import requests
 
+def getServerAddress():
+    url = "https://poker-address-api.vercel.app/"
+    try:
+        # Send the GET request
+        response = requests.get(url)
+        # Check the response status code
+        if response.status_code == 200:
+            print("GET request successful")
+            # Split the response content to extract host and port
+            parts = response.text.split(":")
+            if len(parts) >= 2:
+                host = parts[1][2:].strip()
+                port = int(parts[2].strip())
+                return [host,port]
+            else:
+                print("Invalid response format")
+                return []
+        else:
+            print("GET request failed with status code:", response.status_code)
+            return []
+    except Exception as e:
+        print("An error occurred during the GET request:", e)
+        return []
 WIDTH, HEIGHT = 800, 600
 WINDOW_SIZE = (WIDTH, HEIGHT)
 SCREEN = pygame.display.set_mode(WINDOW_SIZE)
@@ -42,10 +63,8 @@ def Waiting(network,host,room_id):
     pygame.display.set_caption("Waiting")
     running = True
     number = (int)(network.sendData(f"get_number"))
-    print(HOST)
+    # print(network.sendData(f"get_number"))
     SCREEN.fill((0, 0, 0))
-
-
     while running:
 
 
@@ -250,7 +269,8 @@ def Menu():
     input_active1 = False
     text_input2 = ""
     input_active2 = False
-    n=Network()
+    address = getServerAddress()
+    n=Network(address[0],address[1])
     while running:
 
         for event in pygame.event.get():
@@ -335,6 +355,7 @@ def Menu():
             Waiting(n,host,room_id)
         pygame.display.update()
         pygame.display.flip()
+
 Menu()
 pygame.quit()
 

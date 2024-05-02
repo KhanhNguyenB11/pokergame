@@ -1,12 +1,14 @@
+import subprocess
+import re
+
+import requests
+
 from deck import Deck
 from player import player
 import socket
 import threading
-import time
 from game_state import game_state
 import pickle
-import os
-# ngrok http --domain=gull-fit-hopefully.ngrok-free.app 65432
 poker_ranks = {
     "High Card": 1,
     "One Pair": 2,
@@ -516,6 +518,41 @@ def broadcast_to_others(current_player, player_list, action):
             player.conn.sendall(message.encode())
 
 
+
+def get_ngrok_assigned_port():
+    url = "http://127.0.0.1:4040/api/tunnels"
+    try:
+        response = requests.get(url)
+        url_new_https = response.json()["tunnels"][0]["public_url"]
+        return url_new_https
+    except:
+        return None
+    # print(json.dumps(r.json(), indent=4))
+    # pprint.pprint(r, width=1)
+
+# Example usage:
+def updateServerAddress(address):
+    url = "https://poker-address-api.vercel.app/"
+
+    # Define the data to be sent in the request body
+    data = {"address": address}
+    # Send the PUT request
+    response = requests.put(url, json=data)
+
+    # Check the response status code
+    if response.status_code == 200:
+        print(address)
+        print("PUT request successful")
+
+    else:
+        print("PUT request failed with status code:", response.status_code)
+
+
+assigned_port = get_ngrok_assigned_port()
+if assigned_port:
+    updateServerAddress(assigned_port)
+else:
+    print("Failed to obtain assigned port from Ngrok.")
 
 def main():
     """Starts the server."""
