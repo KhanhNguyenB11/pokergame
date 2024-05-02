@@ -3,7 +3,8 @@ import  Draw
 import pygame
 import time
 from Network import Network
-HOST = 'https://gull-fit-hopefully.ngrok-free.app/'
+# HOST = 'https://gull-fit-hopefully.ngrok-free.app/'
+HOST = 'localhost'
 PORT = 65432
 
 WIDTH, HEIGHT = 800, 600

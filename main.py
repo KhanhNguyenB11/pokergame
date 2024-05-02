@@ -226,7 +226,6 @@ def process_action(player, player_list, data):
 def processing_game():
     global state
 
-
     if len(state.flop)==0:
         flop_deal(state.flop, state.deck)
         put_money_into_pot(state)
