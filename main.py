@@ -6,6 +6,7 @@ import time
 from game_state import game_state
 import pickle
 import os
+# ngrok http --domain=gull-fit-hopefully.ngrok-free.app 65432
 poker_ranks = {
     "High Card": 1,
     "One Pair": 2,
