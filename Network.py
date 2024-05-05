@@ -4,17 +4,18 @@ import requests
 HOST = "0.tcp.ap.ngrok.io"
 PORT = 0
 
-# HOST = "localhost"
-# PORT = 65432
+HOST = "localhost"
+PORT = 65432
 class Network():
     def __init__(self,host,port):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.settimeout(5)
         print(host)
         print(port)
-        self.id = self.connect_and_join(host,port)
-        self.host = host
-        self.port = port
+
+        self.host = HOST
+        self.port = PORT
+        self.id = self.connect_and_join(HOST, PORT)
 
     def setNAR(self, room_id, name):
         self.room_id = room_id

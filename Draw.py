@@ -55,7 +55,7 @@ def drawPlayers(screen,players,player_bet,winner_flag):
             else:
                 if (int(player[1]) > player_bet):
                     color = (231, 201, 13)
-                name_surface = font.render(f"{player[1]}", True, (0, 0, 0))
+                name_surface = font.render(f"{player[1]}$", True, (0, 0, 0))
 
             bet_circle = pygame.Rect((POSITIONS_BETCIRCLE[ind][0],POSITIONS_BETCIRCLE[ind][1], 60, 30))
             pygame.draw.ellipse(screen, color, bet_circle)
@@ -64,13 +64,15 @@ def drawPlayers(screen,players,player_bet,winner_flag):
             screen.blit(name_surface, name_rect)
 
 
-def drawChoiceButton(screen,network,fold_circle, check_circle,rise_circle):
+def drawChoiceButton(screen,network,fold_circle, check_circle,rise_circle,current_bet):
         check_color=(0, 255, 255)
         rise_color=(231, 201, 13)
         fold_color=(242, 33, 23)
 
         font = pygame.font.SysFont(None, 16)
-
+        call_or_check="check"
+        if(current_bet>0):
+            call_or_check="call"
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
         if fold_circle.collidepoint(mouse_x, mouse_y ):
@@ -86,7 +88,7 @@ def drawChoiceButton(screen,network,fold_circle, check_circle,rise_circle):
         screen.blit(name_surface, name_rect)
 
         pygame.draw.ellipse(screen, check_color, check_circle)
-        name_surface = font.render("Check", True, (0, 0, 0))
+        name_surface = font.render(call_or_check, True, (0, 0, 0))
         name_rect = name_surface.get_rect(center=(check_circle.centerx, check_circle.centery))
         screen.blit(name_surface, name_rect)
 

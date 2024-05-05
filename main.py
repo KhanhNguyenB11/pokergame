@@ -143,6 +143,7 @@ def reset_players_bet(player_list):
 def reset_players_hand(player_list):
     for player in player_list:
         player.hand = []
+        player.initial_bet=0
     return player_list
 
 
@@ -169,6 +170,7 @@ def process_action(player, player_list, data):
             player.call(state.current_bet)
 
     elif choice == "2":
+        state.pot+=player.initial_bet
         player.initial_bet=-1
         state.active_players.remove(player)
         # else:
@@ -200,6 +202,7 @@ def process_action(player, player_list, data):
         #     print(f"{player.name} check")
         #     state.checked.append(player.name)
     if (len(state.active_players) == 1):
+        put_money_into_pot(state)
         winner=state.active_players[0]
         winner.money += state.pot
         state.winner=winner
@@ -210,11 +213,15 @@ def process_action(player, player_list, data):
     try:
         player_index = player_list.index(player)
         next_player_index = player_index + 1
-        if(next_player_index<len(player_list)):
+        while(next_player_index<len(player_list)):
             player_temp = player_list[next_player_index]
-            while (next_player_index<len(player_list)and(player_temp.initial_bet == -1 or player_temp.money == 0)):
-                next_player_index += 1
-                player_temp = player_list[next_player_index]
+            if not (player_temp.initial_bet == -1 or player_temp.money == 0):
+                if not (player_temp.initial_bet==state.current_bet and state.current_bet>0):
+                    break
+            next_player_index += 1
+
+
+
 
     except ValueError:
         # not found because player had folded
@@ -234,7 +241,8 @@ def processing_game():
         put_money_into_pot(state)
         state.current_bet = 0
     elif(len(state.flop)==5):
-        winner = showdown(state.player_list, state.flop)
+        put_money_into_pot(state)
+        winner = showdown(state.active_players, state.flop)
         if type(winner) is list:
             for player in winner:
                 player.money += state.pot // len(winner)
@@ -254,7 +262,7 @@ def make_pot(player_list,first_index, small_blind, pot):
     big.money -= small_blind * 2
     small.initial_bet = small_blind
     big.initial_bet = small_blind * 2
-    pot += small_blind * 3
+    pot =0
     return pot
 
 

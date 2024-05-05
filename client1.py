@@ -208,7 +208,25 @@ def Play(network):
             if (t > 5000):
                 break
 
-        player_money_surface = font.render(f"{max_value}", True, (255, 255, 255))
+
+
+        bet_color = (0, 255, 255)
+        if (player_bet == -1):
+            bet_color = (242, 33, 23)
+            bet_surface = font.render(f"X", True, (0, 0, 0))
+        else:
+            if (player_bet>0):
+                bet_color = (231, 201, 13)
+            bet_surface = font.render(f"{player_bet}$", True, (0, 0, 0))
+        bet_circle = pygame.Rect((380, 320, 60, 30))
+        pygame.draw.ellipse(SCREEN, bet_color, bet_circle)
+        bet_rect = bet_surface.get_rect(center=(bet_circle.centerx, bet_circle.centery))
+        SCREEN.blit(bet_surface, bet_rect)
+
+
+
+
+        player_money_surface = font.render(f"{max_value} $", True, (255, 255, 255))
         player_money_rect = player_money_surface.get_rect()
         player_money_rect.center = (410, 500)
         SCREEN.blit(player_money_surface, player_money_rect)
@@ -240,11 +258,11 @@ def Play(network):
             SCREEN.blit(tick_surface, tick_rect)
 
 
-            Draw.drawChoiceButton(SCREEN, network, fold_circle, check_circle, rise_circle)
+            Draw.drawChoiceButton(SCREEN, network, fold_circle, check_circle, rise_circle,min_value)
             pygame.draw.rect(SCREEN, (206, 228, 19), (slider_x, slider_y, slider_width, 10))
             thumb_x = int(slider_x + (current_value - min_value) / (max_value - min_value) * slider_width)
             pygame.draw.circle(SCREEN, (19, 228, 23), (thumb_x, slider_y + 5), thumb_radius)
-            current_valueSur = font.render(f'{int(current_value)}', True, (250, 250, 250))
+            current_valueSur = font.render(f'{int(current_value)} $', True, (250, 250, 250))
             current_valueText = current_valueSur.get_rect()
             current_valueText.center = (slider_x - 50, slider_y)
             SCREEN.blit(current_valueSur, current_valueText)
@@ -270,7 +288,7 @@ def Menu():
     text_input2 = ""
     input_active2 = False
     address = getServerAddress()
-    n=Network(address[0],address[1])
+    n=Network("","")
     while running:
 
         for event in pygame.event.get():
