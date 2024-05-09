@@ -1,9 +1,8 @@
 import socket
 import pickle
 import requests
-HOST = "0.tcp.ap.ngrok.io"
-PORT = 0
-
+HOST = 'localhost'
+PORT = 65432
 class Network():
     def __init__(self,host,port):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
