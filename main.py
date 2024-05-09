@@ -168,6 +168,7 @@ def process_action(player, player_list, data):
     if choice == "1":
         if state.current_bet != 0:
             player.call(state.current_bet)
+            state.checked.append(player)
 
     elif choice == "2":
         state.pot+=player.initial_bet
@@ -201,11 +202,13 @@ def process_action(player, player_list, data):
         #     broadcast_to_others(player, player_list, "Check")
         #     print(f"{player.name} check")
         #     state.checked.append(player.name)
+    # 1 player left
     if (len(state.active_players) == 1):
         put_money_into_pot(state)
         winner=state.active_players[0]
         winner.money += state.pot
         state.winner=winner
+        return
     player_temp=player_list[state.Current_first_index]
     while(player_temp.initial_bet==-1 or player_temp.money==0):
         state.Current_first_index+=1
@@ -216,11 +219,9 @@ def process_action(player, player_list, data):
         while(next_player_index<len(player_list)):
             player_temp = player_list[next_player_index]
             if not (player_temp.initial_bet == -1 or player_temp.money == 0):
-                if not (player_temp.initial_bet==state.current_bet and state.current_bet>0):
+                if not (player_temp.initial_bet==state.current_bet and state.current_bet>0 and len(state.flop) != 0):
                     break
             next_player_index += 1
-
-
 
 
     except ValueError:
@@ -232,7 +233,6 @@ def process_action(player, player_list, data):
         state.current_player = player_list[state.Current_first_index]
     else:
         state.current_player = player_list[next_player_index]
-
 def processing_game():
     global state
 
@@ -394,7 +394,6 @@ def getHands(hands):
     myCards=[f"{card}" for card in hands]
     return pickle.dumps(myCards)
 def getPlayers(player,player_list):
-
     player_index = player_list.index(player)
     player_list.pop(player_index)
     myList=[]
