@@ -288,7 +288,8 @@ def Menu():
     text_input2 = ""
     input_active2 = False
     address = getServerAddress()
-    n=Network("","")
+    print(address)
+    n=Network(address[0],address[1])
     while running:
 
         for event in pygame.event.get():
