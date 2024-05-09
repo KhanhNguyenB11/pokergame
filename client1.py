@@ -141,7 +141,7 @@ def Play(network):
     rise_circle = pygame.Rect((BUTTON_POSITIONS[0] + 150, BUTTON_POSITIONS[1], 50, 50))
     time_circle = pygame.Rect((270, 320, 50, 50))
     flag_turn=False
-    limitTime=10000
+    limitTime=30000
     winner_showtime=0
     Pot_rect = pygame.Rect(350, 150, 120, 20)
     while running:
@@ -252,7 +252,7 @@ def Play(network):
                 else:
                     network.sendData("ACTION 2")
             pygame.draw.ellipse(SCREEN, (0, 255, 255), time_circle)
-            tick_surface = font.render(f"{10-int(timePlay / 1000)}", True, (0, 0, 0))
+            tick_surface = font.render(f"{30-int(timePlay / 1000)}", True, (0, 0, 0))
             tick_rect = tick_surface.get_rect(midleft=(time_circle.centerx, time_circle.centery))
             tick_rect.center=(300,350)
             SCREEN.blit(tick_surface, tick_rect)

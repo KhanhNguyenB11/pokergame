@@ -413,6 +413,7 @@ def getWinner(winner,pot):
 
 def handle_client(conn, addr):
     global connected_clients
+    global state
     """Handles communication with a connected client."""
     print(f'Connected by {addr}')
     current_player = None
@@ -509,9 +510,9 @@ def handle_client(conn, addr):
                 new_host.host = True
                 new_host.conn.sendall(f'{new_host.name} created room successfully! You are the host.'.encode())
             connected_clients[room_id].remove(current_player)
+
             conn.close()
             print(f'Client {addr} disconnected.')
-
 
 def broadcast_to_others(current_player, player_list, action):
     if type(current_player) is not list:
