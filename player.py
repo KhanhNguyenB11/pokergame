@@ -203,52 +203,33 @@ class player:
 
     def determine_highest(self, flop):
         hand = self.hand
-        # Check for various hand combinations starting from the strongest
-        straight_flush = self.hasStraightFlush(hand, flop)
-        if straight_flush:
-            if straight_flush == 14:
-                self.highest = (10, straight_flush)
-            else:
-                self.highest = (9, straight_flush)
-            return
 
-        squad = self.hasSquad(hand, flop)
-        if squad:
-            self.highest = (8, squad)
-            return
+        # Define a list of checks with corresponding hand ranks
+        checks = [
+            (self.hasStraightFlush, 10, 9),
+            (self.hasSquad, 8),
+            (self.hasFullHouse, 7),
+            (self.hasFlush, 6),
+            (self.hasStraight, 5),
+            (self.hasThree, 4),
+            (self.has2pairs, 3),
+            (self.hasPair, 2)
+        ]
 
-        full_house = self.hasFullHouse(hand, flop)
-        if full_house:
-            self.highest = (7, full_house)
-            return
-
-        flush = self.hasFlush(hand, flop)
-        if flush:
-            self.highest = (6, flush)
-            return
-
-        straight = self.hasStraight(hand, flop)
-        if straight:
-            self.highest = (5, straight)
-            return
-
-        three_of_a_kind = self.hasThree(hand, flop)
-        if three_of_a_kind:
-            self.highest = (4, three_of_a_kind)
-            return
-
-        two_pairs = self.has2pairs(hand,flop)
-        if two_pairs:
-            self.highest = [3, two_pairs]
-            return
-
-        pair = self.hasPair(hand, flop)
-        if pair:
-            self.highest = (2, pair)
-            return
+        for check in checks:
+            result = check[0](hand, flop)
+            if result:
+                if check[1] == 10:
+                    # Straight flush case, special handling for Royal Flush
+                    rank = 10 if result == 14 else 9
+                else:
+                    rank = check[1]
+                self.highest = (rank, result)
+                return
 
         # If no strong hand is found, determine high card
-        high_card = self.highcard([], hand)
-        self.highest = (1, high_card)
+        self.highest = (1, self.highcard([], hand))
+
+
 
 
